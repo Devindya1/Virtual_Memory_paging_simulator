@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paging Simulation Console</title>
+    <style>
+        /* --- Dark Mode & Full-Screen Layout --- */
+        :root {
+            --primary-blue: #6cb6f1;    /* Primary Accent for Info/System Messages */
+            --primary-green: #69db7c;   /* Success/Hit */
+            --primary-red: #ff6b6b;     /* Error/Fail */
+            --primary-warn: orange;     /* Warning/Miss */
+            --bg-dark: #0d1218;         /* Deep Dark Background */
+            --panel-dark: #374151;      /* Panel/Card Background */
+            --text-primary: #e5e7eb;    /* Light Text */
+            --text-secondary: #9ca3af;  /* Subtle Text */
+        }
+
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            width: 100vw;
+        }
+
+        .main-grid {
+            width: 95%;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            padding: 20px 0;
+            max-width: 1600px;
+        }
+
+        /* --- Header & Controls --- */
+        .controls-panel {
+            background-color: var(--panel-dark);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+
+        h2 {
+            color: var(--primary-blue);
+            margin: 0;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+        }
+
+        .input-fields {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 15px;
+        }
+
+        input {
+            padding: 10px;
+            background: #4b5563;
+            border: 1px solid #6b7280;
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 2px rgba(75, 148, 247, 0.2);
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-run {
+            background-color: var(--primary-green);
+            color: var(--bg-dark);
+        }
+
+        .btn-run:hover { background-color: #86e594; }
+
+        .btn-reset {
+            background-color: var(--primary-red);
+            color: white;
+        }
+
+        .btn-reset:hover { background-color: #ff8a8a; }
+
+        /* --- Dual Output Section --- */
+        .output-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            min-height: 70vh;
+        }
+
+        .log-box {
+            background-color: #111827;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            border: 1px solid #374151;
+        }
+
+        .log-box h3 {
+            border-bottom: 2px solid var(--primary-blue);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        /* --- Result Cards (Left Panel) --- */
+        #resultsOutput {
+            color: var(--text-secondary);
+        }
+
+        .result-card {
+            background: var(--panel-dark);
+            border-left: 4px solid var(--primary-blue);
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.2s;
+        }
+
+        .result-card.hit { border-left-color: var(--primary-green); }
+        .result-card.miss-load { border-left-color: var(--primary-warn); }
+        .result-card.miss-full, .result-card.invalid { border-left-color: var(--primary-red); }
+
+        .card-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .card-detail {
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .status-tag {
+            float: right;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: bold;
+            color: var(--bg-dark);
+        }
+
+        .tag-hit { background-color: var(--primary-green); }
+        .tag-miss { background-color: var(--primary-warn); }
+        .tag-error { background-color: var(--primary-red); color: white; }
+
+        /* --- System Status (Right Panel) --- */
+        #systemLog {
+            color: var(--text-secondary);
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .log-success { color: var(--primary-white); }
+        .log-error { color: var(--primary-red); }
+        .log-warn { color: var(--primary-warn); }
+        
+        /* Log symbols (only used for non-execution errors/status) */
+        .log-entry:before {
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        .log-success:before { content: '>>> '; color: var(--primary-blue); }
+        .log-error:before { content: ' '; color: var(--primary-red); }
+        .log-warn:before { content: ' '; color: var(--primary-warn); }
+        
+        /* Media Query for smaller screens (optional but good practice) */
+        @media (max-width: 1000px) {
+            .controls-panel {
+                grid-template-columns: 1fr;
+            }
+            .input-fields {
+                grid-template-columns: 1fr 2fr;
+            }
+            .output-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-grid">
+    <div class="controls-panel">
+        <h2>Paging Address Simulator...</h2>
+        
+        <div class="input-fields">
+            <input type="number" id="countInput" min="1" max="10" value="5" placeholder="Count (Max 10)">
+            <input type="text" id="addrInput" placeholder="Enter Addresses (e.g. 1024, 2500, ...)">
+        </div>
+
+        <div class="btn-container">
+            <button class="btn-run" onclick="simulate()">Execute</button>
+            <button class="btn-reset" onclick="resetSim()">Reset</button>
+        </div>
+    </div>
+
+    <div class="output-section">
+        <div class="log-box" id="resultsOutput">
+            <h3>Translation Results</h3>
+            <p class="log-entry log-success">System ready. Results will appear here upon execution.</p>
+        </div>
+
+        <div class="log-box" id="systemLog">
+            <h3>System Status</h3>
+            <p class="log-entry log-success">System operational. Enter the exact count and addresses, then click Execute.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Core Constants and State ---
+    const PAGE_SIZE = 1024;
+    const TOTAL_PAGES = 8;
+    const TOTAL_FRAMES = 4;
+
+    let pageTable = new Array(TOTAL_PAGES).fill(-1);
+    let frameTable = new Array(TOTAL_FRAMES).fill(0);
+    let nextFree = 0;
+
+    // --- Logging Functions ---
+
+    // Logs ONLY to the System Status Panel (Right). Used only for critical user input errors or status updates.
+    function sysLog(msg, type = 'success') {
+        const out = document.getElementById("systemLog");
+        const p = document.createElement('p');
+        p.className = `log-entry log-${type}`;
+        p.innerHTML = msg;
+        out.appendChild(p);
+        out.scrollTop = out.scrollHeight;
+    }
+    
+    // Logs to the Results Panel (Left).
+    function createResultCard(addr, page, offset, status, frame, physical) {
+        const out = document.getElementById("resultsOutput");
+        const card = document.createElement('div');
+        card.className = `result-card ${status.toLowerCase().replace('_', '-')}`;
+
+        let statusTagClass = '';
+        let statusTagText = '';
+        let detailText = '';
+        
+        if (status === 'HIT') {
+            statusTagClass = 'tag-hit';
+            statusTagText = 'HIT';
+            detailText = `Frame Allocated: ${frame}. <br>Physical Address: <span class="log-success">${physical}</span>`;
+        } else if (status === 'MISS_LOADED') {
+            statusTagClass = 'tag-miss';
+            statusTagText = 'PAGE FAULT (Loaded)';
+            detailText = `Loaded into Frame ${frame}. <br>Physical Address: <span class="log-success">${physical}</span>`;
+        } else if (status === 'MISS_FULL') {
+            statusTagClass = 'tag-error';
+            statusTagText = 'MEMORY FULL';
+            detailText = `No free frames available. Translation blocked.`;
+        } else if (status === 'INVALID') {
+            statusTagClass = 'tag-error';
+            statusTagText = 'ADDRESS OUT OF RANGE';
+            detailText = `Page ${page} is invalid. Max Page is ${TOTAL_PAGES - 1}.`;
+        }
+
+        card.innerHTML = `
+            <div class="card-header">
+                Logical Address: <span class="log-success">${addr}</span>
+                <span class="status-tag ${statusTagClass}">${statusTagText}</span>
+            </div>
+            <div class="card-detail">
+                Page Number: ${page} | Offset: ${offset}<br>
+                ${detailText}
+            </div>
+        `;
+        out.appendChild(card);
+        out.scrollTop = out.scrollHeight;
+    }
+
+
+    function simulate() {
+        const countInput = document.getElementById("countInput");
+        const text = document.getElementById("addrInput").value;
+        const resultsOut = document.getElementById("resultsOutput");
+        resultsOut.innerHTML = '<h3>Translation Results</h3>'; // Clear previous results
+
+        // 1. Validate Count Input (CRITICAL USER INPUT ERROR -> GOES TO SYSLOG)
+        const requestedCount = parseInt(countInput.value, 10);
+        
+        if (isNaN(requestedCount) || requestedCount <= 0 || requestedCount > 10) {
+            sysLog(`Invalid execution count (${requestedCount}). Must be 1-10.`, "error");
+            return;
+        }
+
+        // 2. Parse and Validate Addresses (CRITICAL USER INPUT ERROR -> GOES TO SYSLOG)
+        if (!text.trim()) {
+            sysLog("No address input detected. Please enter numbers.", "error");
+            return;
+        }
+
+        let allAddrs = text.split(/[, ]+/).filter(Boolean).map(Number);
+        
+        if (allAddrs.some(isNaN)) {
+            sysLog("Invalid numeric input detected in addresses.", "error");
+            return;
+        }
+        
+        // 3. ENFORCE EXACT MATCH REQUIREMENT (CRITICAL USER INPUT ERROR -> GOES TO SYSLOG)
+        if (allAddrs.length !== requestedCount) {
+             sysLog(`Input mismatch! Requested ${requestedCount} addresses but received ${allAddrs.length}. Please correct your input.`, "error");
+             return;
+        }
+
+        sysLog(`Execution started for ${requestedCount} addresses.`, "success");
+        
+        // --- Simulation Loop ---
+        let addrs = allAddrs.slice(0, requestedCount);
+
+        addrs.forEach(addr => {
+            let page = Math.floor(addr / PAGE_SIZE);
+            let offset = addr % PAGE_SIZE;
+            let status = '';
+            let frame = -1;
+            let physical = -1;
+
+            if (page >= TOTAL_PAGES) {
+                // Invalid Address -> NOW ONLY LOGGED IN RESULTS
+                status = 'INVALID';
+            } else if (pageTable[page] !== -1) {
+                // HIT
+                status = 'HIT';
+                frame = pageTable[page];
+                physical = frame * PAGE_SIZE + offset;
+            } else {
+                // MISS
+                if (nextFree < TOTAL_FRAMES) {
+                    // MISS & LOAD
+                    status = 'MISS_LOADED';
+                    pageTable[page] = nextFree;
+                    frame = nextFree;
+                    physical = frame * PAGE_SIZE + offset;
+                    frameTable[nextFree] = 1;
+                    nextFree++;
+                    // Removed: sysLog(`Address ${addr}: Page ${page} faulted. Loaded into Frame ${frame}.`, "warn");
+                } else {
+                    // MISS & FULL -> NOW ONLY LOGGED IN RESULTS
+                    status = 'MISS_FULL';
+                }
+            }
+            
+            // Generate the card
+            createResultCard(addr, page, offset, status, frame, physical);
+        });
+
+        sysLog("Execution finished.", "success");
+    }
+
+    function resetSim() {
+        pageTable.fill(-1);
+        frameTable.fill(0);
+        nextFree = 0;
+        
+        document.getElementById("resultsOutput").innerHTML = '<h3>Translation Results</h3><p class="log-entry log-success">Results will appear here upon execution.</p>';
+        document.getElementById("addrInput").value = "";
+        document.getElementById("countInput").value = "5";
+        
+        // Clear and update system log
+        const systemLogOut = document.getElementById("systemLog");
+        systemLogOut.innerHTML = '<h3>System Status</h3>';
+        sysLog("System state and memory reset successfully.", "success");
+    }
+</script>
+
+</body>
+</html>
